@@ -3,9 +3,7 @@ import "core:strings";
 import "core:os";
 import "core:fmt";
 import "core:time";
-import "core:runtime";
-import "../raylib";
-import "../types";
+import "core:c";
 
 GameVar :: union {
 	f32,
@@ -29,6 +27,12 @@ LuaInstance :: struct {
 	state: ^lua_State,
 }
 
+LuaRef :: c.int;
+
+LuaTable :: struct {
+	ref: LuaRef
+}
+
 init :: proc () -> ^LuaInstance {
 	state := luaL_newstate();
 	luaL_openlibs(state);
@@ -39,6 +43,12 @@ init :: proc () -> ^LuaInstance {
 	instance.state = state;
 
 	return instance;
+}
+
+close :: proc(instance: ^LuaInstance) {
+	lua_close(instance.state);
+
+	free(instance);
 }
 
 startTableIter :: proc(lua: ^LuaInstance){
@@ -139,6 +149,90 @@ iterate_lua_table :: proc(it: ^LuaTableIterator) -> (val: int, idx: int, cond: b
 	}
 	return;
 }
+
+getTableRegistry :: proc(lua: ^LuaInstance, table: LuaTable) {
+	lua_rawgeti(lua.state, LUA_REGISTRYINDEX, i64(table.ref));
+}
+
+setTableString :: proc(lua: ^LuaInstance, table: LuaTable, key: string, str: string) {
+	getTableRegistry(lua, table);
+	push_string(lua, key);
+	push_string(lua, str);
+
+	lua_settable(lua.state, -3);
+
+	lua_pop(lua.state, 1);
+}
+
+setTableBool :: proc(lua: ^LuaInstance, table: LuaTable, key: string, value: bool) {
+	getTableRegistry(lua, table);
+	push_string(lua, key);
+	lua_pushboolean(lua.state, value);
+
+	lua_settable(lua.state, -3);
+	lua_pop(lua.state, 1);
+}
+
+setTableInteger :: proc(lua: ^LuaInstance, table: LuaTable, key: string, auto_cast value: i64) {
+	getTableRegistry(lua, table);
+	push_string(lua, key);
+	lua_pushinteger(lua.state, value);
+
+	lua_settable(lua.state, -3);
+
+	lua_pop(lua.state, 1);
+}
+
+pushTableString :: proc(lua: ^LuaInstance, table: LuaTable, str: string) {
+	getTableRegistry(lua, table);
+	len := lua_rawlen(lua.state, -1);
+
+	lua_pushinteger(lua.state, i64(len) + 1);
+	push_string(lua, str);
+
+	lua_pop(lua.state, 1);
+}
+pushTableTable :: proc(lua: ^LuaInstance, table: LuaTable, child: LuaTable) {
+	lua_rawgeti(lua.state, LUA_REGISTRYINDEX, i64(table.ref));
+
+	len := lua_rawlen(lua.state, -1);
+
+	lua_pushinteger(lua.state, i64(len) + 1);
+	lua_rawgeti(lua.state, LUA_REGISTRYINDEX, i64(child.ref));
+
+	lua_settable(lua.state, -3);
+
+	lua_pop(lua.state, 1);
+}
+
+pushTableInt :: proc(lua: ^LuaInstance, table: LuaTable, auto_cast value: i64) {
+	getTableRegistry(lua, table);
+	len := lua_rawlen(lua.state, -1);
+
+	lua_pushinteger(lua.state, i64(len) + 1);
+	lua_pushinteger(lua.state, value);
+
+	lua_settable(lua.state, -3);
+
+	lua_pop(lua.state, 1);
+}
+
+deleteTable :: proc(lua: ^LuaInstance, table: LuaTable) {
+	luaL_unref(lua.state, LUA_REGISTRYINDEX, table.ref);
+}
+
+setTableTable :: proc(lua: ^LuaInstance, table: LuaTable, key: string, child: LuaTable) {
+	getTableRegistry(lua, table);
+	push_string(lua, key);
+	getTableRegistry(lua, child);
+	lua_settable(lua.state, -3);
+
+	lua_pop(lua.state, 1);
+}
+
+setTable :: proc {setTableString, setTableTable, setTableInteger, setTableBool};
+pushTable :: proc{pushTableString, pushTableTable, pushTableInt};
+
 
 push_string :: proc (lua: ^LuaInstance, str: string) {
 	cstr : cstring = strings.clone_to_cstring(str, context.temp_allocator);
@@ -243,6 +337,17 @@ unloadTable :: proc(lua: ^LuaInstance) {
 	lua_pop(lua.state, 1);
 }
 
+createTable :: proc(lua: ^LuaInstance) -> LuaTable{
+	lua_newtable(lua.state);
+
+	ref := luaL_ref(lua.state, LUA_REGISTRYINDEX);
+
+	return {
+		ref=ref
+	};
+
+}
+
 tableForeach :: proc(lua: ^LuaInstance, data: $R, callback: proc(^LuaInstance, $T)) {
 	lua_pushnil(lua.state);
 	defer lua_pop(lua.state, 1);
@@ -259,6 +364,14 @@ do_file :: proc(lua: ^LuaInstance, path: string) -> bool{
 	return luaL_dofile(lua.state, str) == 0;
 
 }
+
+doString :: proc(lua: ^LuaInstance, script: string) -> bool {
+	str: cstring = strings.clone_to_cstring(script);
+
+	defer delete(str);
+
+	return luaL_dostring(lua.state, str) == 0;
+} 
 
 to_string :: proc(lua: ^LuaInstance, index:= -1) -> string {
 	return lua_tostring(lua.state, index);

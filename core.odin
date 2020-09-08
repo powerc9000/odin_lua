@@ -4,6 +4,7 @@ import "core:os"
 import "core:strings";
 import "core:mem";
 import "core:fmt";
+import "core:c";
 
 when os.OS == "windows" do foreign import lua "system:lua53.lib";
 when os.OS == "linux" do foreign import lua "system:lua53";
@@ -68,7 +69,7 @@ foreign lua {
 	lua_rawget :: proc (L: ^lua_State , idx: int ) -> int ---;
 	lua_rawgeti :: proc (L: ^lua_State , idx: int , n: lua_Integer) -> int ---;
 	lua_rawgetp :: proc (L: ^lua_State , idx: int , p: rawptr) -> int ---;
-	lua_rawlen :: proc (L: ^lua_State , idx: int ) -> uintptr ---;
+	lua_rawlen :: proc (L: ^lua_State , idx: int ) -> c.size_t ---;
 	lua_rawset :: proc (L: ^lua_State , idx: int ) ---;
 	lua_rawseti :: proc (L: ^lua_State , idx: int , n: lua_Integer) ---;
 	lua_rawsetp :: proc (L: ^lua_State , idx: int , p: rawptr) ---;
@@ -129,7 +130,7 @@ foreign lua {
 	luaL_optinteger :: proc (L: ^lua_State , arg: int,def: lua_Integer ) -> lua_Integer ---;
 	luaL_optlstring :: proc (L: ^lua_State , arg: int , def: cstring, l: ^uintptr) -> cstring ---;
 	luaL_optnumber :: proc (L: ^lua_State , arg: int , def:lua_Number) -> lua_Number ---;
-	luaL_ref :: proc (L: ^lua_State , t: int ) -> int ---;
+	luaL_ref :: proc (L: ^lua_State , t: c.int ) -> c.int ---;
 	luaL_requiref :: proc (L: ^lua_State , modname: cstring, openf: lua_CFunction , glb: int ) ---;
 	luaL_setfuncs :: proc (L: ^lua_State , l: ^luaL_Reg, nup: int ) --- ;
 	luaL_setmetatable :: proc (L: ^lua_State , tname: cstring) ---;
@@ -137,7 +138,7 @@ foreign lua {
 	luaL_tolstring :: proc (L: ^lua_State , idx: int , len: ^uintptr) -> cstring ---;
 	luaL_traceback :: proc (L: ^lua_State , L1: ^lua_State ,msg: cstring, level: int ) ---;
 	luaL_where :: proc (L: ^lua_State , lvl: int ) ---;
-	luaL_unref :: proc (L: ^lua_State , t: int , ref: int ) ---;
+	luaL_unref :: proc (L: ^lua_State , t: int , ref: c.int ) ---;
 }
 
 lua_toboolean :: proc(L: ^lua_State , idx: int ) -> bool{
@@ -466,11 +467,16 @@ luaL_dofile :: proc (L:^ lua_State, fn: cstring) -> int
 	luaL_loadfile(L, fn);
 	return lua_pcall(L, 0, LUA_MULTRET, 0);
 }
+lua_dostring :: proc(L: ^lua_State, s: string) -> int {
+	cstr := strings.clone_to_cstring(s);
+	defer delete(cstr);
 
-luaL_dostring :: proc (L:^ lua_State, s: cstring)
+	return luaL_dostring(L, cstr);
+}
+luaL_dostring :: proc (L:^ lua_State, s: cstring) -> int
 {
 	luaL_loadstring(L, s);
-	lua_pcall(L, 0, LUA_MULTRET, 0);
+	return lua_pcall(L, 0, LUA_MULTRET, 0);
 }
 
 luaL_getmetatable :: proc (L:^ lua_State,n:cstring)
