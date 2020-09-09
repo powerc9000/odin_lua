@@ -3,10 +3,9 @@ package lua;
 import "core:os"
 import "core:strings";
 import "core:mem";
-import "core:fmt";
 import "core:c";
 
-when os.OS == "windows" do foreign import lua "system:lua53.lib";
+when os.OS == "windows" do foreign import lua "./lua53.lib";
 when os.OS == "linux" do foreign import lua "system:lua53";
 when ODIN_OS == "darwin" do foreign import lua "./liblua53.a";
 
