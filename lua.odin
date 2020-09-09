@@ -400,6 +400,13 @@ to_string :: proc(lua: ^LuaInstance, index:= -1) -> string {
 	return lua_tostring(lua.state, index);
 }
 
+luaFunctionExists :: proc(lua: ^LuaInstance, name: string) -> bool {
+	cstr := strings.clone_to_cstring(name, context.temp_allocator);
+	type := lua_getglobal(lua.state, cstr);
+	lua_pop(lua.state, 1);
+
+	return type == LUA_TFUNCTION;
+}
 genId :: proc () -> int {
 	@static id := 0;
 
@@ -433,6 +440,7 @@ dump_stack :: proc(lua: ^LuaInstance) {
           }
          fmt.println("--------------- Stack Dump Finished ---------------" );
 }
+
 /*
 for lua_next(lua.state, -2) !=0 {
 	lua_pushnil(lua.state);

@@ -460,7 +460,12 @@ luaL_checkversion :: proc (L: ^lua_State)
 // luaL_optstring :: (L:^ lua_State,n,d)	(luaL_optlstring(L, (n), (d), NULL))
 
 // luaL_typename :: (L:^ lua_State,i)	lua_typename(L, lua_type(L,(i)))
+lua_dofile :: proc(L: ^lua_State, path: string) -> int {
+	cstr := strings.clone_to_cstring(path);
+	defer delete(cstr);
 
+	return luaL_dofile(L, cstr);
+}
 luaL_dofile :: proc (L:^ lua_State, fn: cstring) -> int
 {
 	luaL_loadfile(L, fn);
