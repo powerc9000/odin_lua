@@ -400,9 +400,14 @@ to_string :: proc(lua: ^LuaInstance, index:= -1) -> string {
 	return lua_tostring(lua.state, index);
 }
 
-luaFunctionExists :: proc(lua: ^LuaInstance, name: string) -> bool {
+getGlobal :: proc(lua: ^LuaInstance, name: string) -> int {
 	cstr := strings.clone_to_cstring(name, context.temp_allocator);
 	type := lua_getglobal(lua.state, cstr);
+
+	return type;
+}
+luaFunctionExists :: proc(lua: ^LuaInstance, name: string) -> bool {
+	type := getGlobal(lua, name);
 	lua_pop(lua.state, 1);
 
 	return type == LUA_TFUNCTION;
