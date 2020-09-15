@@ -182,7 +182,7 @@ setTableString :: proc(lua: ^LuaInstance, table: LuaTable, key: string, str: str
 	push_string(lua, key);
 	push_string(lua, str);
 
-	lua_settable(lua.state, -3);
+	lua_rawset(lua.state, -3);
 
 	lua_pop(lua.state, 1);
 }
@@ -192,7 +192,7 @@ setTableBool :: proc(lua: ^LuaInstance, table: LuaTable, key: string, value: boo
 	push_string(lua, key);
 	lua_pushboolean(lua.state, value);
 
-	lua_settable(lua.state, -3);
+	lua_rawset(lua.state, -3);
 	lua_pop(lua.state, 1);
 }
 
@@ -201,7 +201,7 @@ setTableInteger :: proc(lua: ^LuaInstance, table: LuaTable, key: string, auto_ca
 	push_string(lua, key);
 	lua_pushinteger(lua.state, value);
 
-	lua_settable(lua.state, -3);
+	lua_rawset(lua.state, -3);
 
 	lua_pop(lua.state, 1);
 }
@@ -210,8 +210,9 @@ pushTableString :: proc(lua: ^LuaInstance, table: LuaTable, str: string) {
 	getTableRegistry(lua, table);
 	len := lua_rawlen(lua.state, -1);
 
-	lua_pushinteger(lua.state, i64(len) + 1);
 	push_string(lua, str);
+
+	lua_rawseti(lua.state, -2, i64(len) + 1);
 
 	lua_pop(lua.state, 1);
 }
@@ -220,10 +221,9 @@ pushTableTable :: proc(lua: ^LuaInstance, table: LuaTable, child: LuaTable) {
 
 	len := lua_rawlen(lua.state, -1);
 
-	lua_pushinteger(lua.state, i64(len) + 1);
 	lua_rawgeti(lua.state, LUA_REGISTRYINDEX, i64(child.ref));
 
-	lua_settable(lua.state, -3);
+	lua_rawseti(lua.state, -2, i64(len) + 1);
 
 	lua_pop(lua.state, 1);
 }
@@ -232,10 +232,8 @@ pushTableInt :: proc(lua: ^LuaInstance, table: LuaTable, auto_cast value: i64) {
 	getTableRegistry(lua, table);
 	len := lua_rawlen(lua.state, -1);
 
-	lua_pushinteger(lua.state, i64(len) + 1);
 	lua_pushinteger(lua.state, value);
-
-	lua_settable(lua.state, -3);
+	lua_rawseti(lua.state, -2, i64(len) + 1);
 
 	lua_pop(lua.state, 1);
 }
