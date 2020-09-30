@@ -97,27 +97,11 @@ loadVarFile :: proc(lua: ^LuaInstance, file: string) -> VarInfo {
 	return result;
 }
 getLastModified :: proc(path: string) -> (i64, bool){
-	when ODIN_OS == "darwin" {
-		if stat, ok := os.stat(path); ok {
-			return stat.modified.seconds, ok;
-		} else {
-			return 0, false;
-		}
-
+	if stat, ok := os.stat(path, context.temp_allocator); ok != 0{
+		return stat.modification_time._nsec, ok != 0;
+	} else {
+		return 0, false;
 	}
-	when ODIN_OS == "windows" {
-		if file, ok := os.open(path); ok == 0{
-			if time, err := os.last_write_time(file);  err == 0 {
-				return i64(time), true;
-			} else {
-				return 0, false;
-			}
-		} else {
-			return 0, false;
-		}
-	}
-
-	return 0, false;
 }
 
 checkVars :: proc(lua: ^LuaInstance, info: VarInfo) -> bool {
