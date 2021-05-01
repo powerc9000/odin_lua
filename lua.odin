@@ -3,24 +3,25 @@ import "core:strings";
 import "core:os";
 import "core:fmt";
 import "core:time";
+import "core:log";
 import "core:c";
 
 GameVar :: union {
 	f32,
-	string
+	string,
 }
 
 
 LuaScript :: struct {
 	path: string,
 	lastChecked: u64,
-	chunkRef:i64 
+	chunkRef:i64,
 }
 
 VarInfo :: struct {
 	vars: map[string]GameVar,
 	file: string,
-	lastChecked: u64
+	lastChecked: u64,
 }
 
 LuaInstance :: struct {
@@ -30,7 +31,7 @@ LuaInstance :: struct {
 LuaRef :: c.int;
 
 LuaTable :: struct {
-	ref: LuaRef
+	ref: LuaRef,
 }
 
 init :: proc () -> ^LuaInstance {
@@ -69,7 +70,11 @@ tableNextLoop :: proc(lua: ^LuaInstance) {
 loadVarFile :: proc(lua: ^LuaInstance, file: string) -> VarInfo {
 	vars := make(map[string]GameVar, 20);
 
-	do_file(lua, file);
+	success := do_file(lua, file);
+	if !success {
+		log.error("error doing file");
+		return {};
+	}
 
 	startTableIter(lua);
 	defer endTableIter(lua);
@@ -97,8 +102,8 @@ loadVarFile :: proc(lua: ^LuaInstance, file: string) -> VarInfo {
 	return result;
 }
 getLastModified :: proc(path: string) -> (i64, bool){
-	if stat, ok := os.stat(path, context.temp_allocator); ok != 0{
-		return stat.modification_time._nsec, ok != 0;
+	if stat, ok := os.stat(path, context.temp_allocator); ok == 0{
+		return stat.modification_time._nsec, ok == 0;
 	} else {
 		return 0, false;
 	}
@@ -106,7 +111,7 @@ getLastModified :: proc(path: string) -> (i64, bool){
 
 checkVars :: proc(lua: ^LuaInstance, info: VarInfo) -> bool {
 	seconds, ok := getLastModified(info.file);
-	return ok && cast(u64)seconds * 1e9 > info.lastChecked;
+	return ok && cast(u64)seconds > info.lastChecked;
 }
 
 loadScript :: proc(lua: ^LuaInstance, path : string) -> LuaScript{
@@ -128,7 +133,7 @@ cleanupScript :: proc(lua: ^LuaInstance) {
 LuaTableIterator :: struct {
 	size: int,
 	data: ^LuaInstance,
-	index: int
+	index: int,
 }
 
 start_iterate_table :: proc(lua: ^LuaInstance) -> LuaTableIterator {
@@ -136,7 +141,7 @@ start_iterate_table :: proc(lua: ^LuaInstance) -> LuaTableIterator {
 	return {
 		size= 0,
 		data= lua,
-		index= 0
+		index= 0,
 	};
 }
 
@@ -348,7 +353,7 @@ createTable :: proc(lua: ^LuaInstance) -> LuaTable{
 	ref := luaL_ref(lua.state, LUA_REGISTRYINDEX);
 
 	return {
-		ref=ref
+		ref=ref,
 	};
 
 }
