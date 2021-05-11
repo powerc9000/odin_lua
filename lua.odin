@@ -8,6 +8,7 @@ import "core:c";
 
 GameVar :: union {
 	f32,
+	bool,
 	string,
 }
 
@@ -88,6 +89,9 @@ loadVarFile :: proc(lua: ^LuaInstance, file: string) -> VarInfo {
 			}
 			case LUA_TNUMBER: {
 				vars[key] = cast(f32)lua_tonumber(lua.state, -1);
+			}
+			case LUA_TBOOLEAN: {
+				vars[key] = cast(bool)lua_toboolean(lua.state, -1);
 			}
 			case: {
 				//Don't care
