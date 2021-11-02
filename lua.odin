@@ -7,20 +7,20 @@ import "core:c";
 
 GameVar :: union {
 	f32,
-	string
+	string,
 }
 
 
 LuaScript :: struct {
 	path: string,
 	lastChecked: u64,
-	chunkRef:i64 
+	chunkRef:i64 ,
 }
 
 VarInfo :: struct {
 	vars: map[string]GameVar,
 	file: string,
-	lastChecked: u64
+	lastChecked: u64,
 }
 
 LuaInstance :: struct {
@@ -30,7 +30,7 @@ LuaInstance :: struct {
 LuaRef :: c.int;
 
 LuaTable :: struct {
-	ref: LuaRef
+	ref: LuaRef,
 }
 
 init :: proc () -> ^LuaInstance {
@@ -128,7 +128,7 @@ cleanupScript :: proc(lua: ^LuaInstance) {
 LuaTableIterator :: struct {
 	size: int,
 	data: ^LuaInstance,
-	index: int
+	index: int,
 }
 
 start_iterate_table :: proc(lua: ^LuaInstance) -> LuaTableIterator {
@@ -136,7 +136,7 @@ start_iterate_table :: proc(lua: ^LuaInstance) -> LuaTableIterator {
 	return {
 		size= 0,
 		data= lua,
-		index= 0
+		index= 0,
 	};
 }
 
@@ -348,7 +348,7 @@ createTable :: proc(lua: ^LuaInstance) -> LuaTable{
 	ref := luaL_ref(lua.state, LUA_REGISTRYINDEX);
 
 	return {
-		ref=ref
+		ref=ref,
 	};
 
 }
