@@ -3,10 +3,12 @@ import "core:strings";
 import "core:os";
 import "core:fmt";
 import "core:time";
+import "core:log";
 import "core:c";
 
 GameVar :: union {
 	f32,
+	bool,
 	string,
 }
 
@@ -69,7 +71,11 @@ tableNextLoop :: proc(lua: ^LuaInstance) {
 loadVarFile :: proc(lua: ^LuaInstance, file: string) -> VarInfo {
 	vars := make(map[string]GameVar, 20);
 
-	do_file(lua, file);
+	success := do_file(lua, file);
+	if !success {
+		log.error("error doing file");
+		return {};
+	}
 
 	startTableIter(lua);
 	defer endTableIter(lua);
@@ -84,6 +90,9 @@ loadVarFile :: proc(lua: ^LuaInstance, file: string) -> VarInfo {
 			case LUA_TNUMBER: {
 				vars[key] = cast(f32)lua_tonumber(lua.state, -1);
 			}
+			case LUA_TBOOLEAN: {
+				vars[key] = cast(bool)lua_toboolean(lua.state, -1);
+			}
 			case: {
 				//Don't care
 			}
@@ -97,8 +106,8 @@ loadVarFile :: proc(lua: ^LuaInstance, file: string) -> VarInfo {
 	return result;
 }
 getLastModified :: proc(path: string) -> (i64, bool){
-	if stat, ok := os.stat(path, context.temp_allocator); ok != 0{
-		return stat.modification_time._nsec, ok != 0;
+	if stat, ok := os.stat(path, context.temp_allocator); ok == 0{
+		return stat.modification_time._nsec, ok == 0;
 	} else {
 		return 0, false;
 	}
@@ -106,7 +115,7 @@ getLastModified :: proc(path: string) -> (i64, bool){
 
 checkVars :: proc(lua: ^LuaInstance, info: VarInfo) -> bool {
 	seconds, ok := getLastModified(info.file);
-	return ok && cast(u64)seconds * 1e9 > info.lastChecked;
+	return ok && cast(u64)seconds > info.lastChecked;
 }
 
 loadScript :: proc(lua: ^LuaInstance, path : string) -> LuaScript{

@@ -268,7 +268,7 @@ lua_State :: struct{};
 luaL_Reg :: struct  
 {
 	name: cstring,
-	func: lua_CFunction ,
+	func: lua_CFunction,
 };
 
 CallInfo :: struct {};
