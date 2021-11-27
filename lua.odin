@@ -16,7 +16,11 @@ GameVar :: union {
 LuaScript :: struct {
 	path: string,
 	lastChecked: u64,
+<<<<<<< HEAD
 	chunkRef:i64 ,
+=======
+	chunkRef:i32,
+>>>>>>> 00c3501 (new stuff)
 }
 
 VarInfo :: struct {
@@ -123,7 +127,11 @@ loadScript :: proc(lua: ^LuaInstance, path : string) -> LuaScript{
 	instance.path = path;
 	instance.lastChecked = cast(u64)time.now()._nsec;
 	luaL_loadfile(lua.state, strings.clone_to_cstring(path));
+<<<<<<< HEAD
 	instance.chunkRef = cast(i64)luaL_ref(lua.state, LUA_REGISTRYINDEX);
+=======
+	instance.chunkRef = luaL_ref(lua.state, LUA_REGISTRYINDEX);
+>>>>>>> 00c3501 (new stuff)
 	return instance;
 }
 
@@ -364,7 +372,12 @@ createTable :: proc(lua: ^LuaInstance) -> LuaTable{
 
 tableForeach :: proc(lua: ^LuaInstance, data: $R, callback: proc(^LuaInstance, $T)) {
 	lua_pushnil(lua.state);
+<<<<<<< HEAD
 	defer lua_pop(lua.state, 1);
+=======
+
+	//defer lua_pop(lua.state, 1);
+>>>>>>> 00c3501 (new stuff)
 	for lua_next(lua.state, -2) != 0 {
 		defer lua_pop(lua.state, 1);
 		callback(lua, data);
@@ -410,6 +423,7 @@ genId :: proc () -> int {
 
 	return id;
 }
+<<<<<<< HEAD
 
 hasScriptChanged :: proc(lastUpdated: u64, path: string) -> bool {
 	seconds, ok := getLastModified(path);
@@ -435,6 +449,29 @@ dump_stack :: proc(lua: ^LuaInstance) {
            i -= 1;
           }
          fmt.println("--------------- Stack Dump Finished ---------------" );
+=======
+hasScriptChanged :: proc(lastUpdated: u64, path: string) -> bool {
+	seconds, ok := getLastModified(path);
+	return ok && cast(u64) seconds > lastUpdated;
+}
+
+dump_stack :: proc(lua: ^LuaInstance, showTables:=true) {
+	i := lua_gettop(lua.state);
+	fmt.println(" ----------------  Stack Dump ----------------" );
+	for i > 0 {
+		t := lua_type(lua.state, i);
+		switch (t) {
+			case LUA_TSTRING:
+			fmt.println(i, lua_tostring(lua.state, i));
+			case LUA_TBOOLEAN:
+			fmt.println(i,lua_toboolean(lua.state, i));
+			case LUA_TNUMBER:
+			fmt.println(i, lua_typename(lua.state, t));            
+		}
+		i -= 1;
+	}
+	fmt.println("--------------- Stack Dump Finished ---------------" );
+>>>>>>> 00c3501 (new stuff)
 }
 
 /*
